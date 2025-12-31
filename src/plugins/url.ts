@@ -1,0 +1,55 @@
+import { Plugin, Candidate } from './types';
+
+export const urlPlugin: Plugin = {
+  id: 'url',
+  name: 'URL 处理',
+  icon: '🔗',
+
+  generate(input: string): Candidate | null {
+    const trimmed = input.trim();
+
+    if (/^https?:\/\/.+/i.test(trimmed)) {
+      return {
+        pluginId: 'url',
+        title: `打开链接：${trimmed}`,
+        description: '在浏览器中打开链接',
+        icon: '🔗',
+        action: {
+          type: 'open-url',
+          payload: trimmed,
+        },
+      };
+    }
+
+    const domainPattern = /^(www\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/i;
+    if (domainPattern.test(trimmed)) {
+      const url = `https://${trimmed}`;
+      return {
+        pluginId: 'url',
+        title: `访问网站：${trimmed}`,
+        description: '在浏览器中打开',
+        icon: '🔗',
+        action: {
+          type: 'open-url',
+          payload: url,
+        },
+      };
+    }
+
+    if (trimmed.length > 2) {
+      const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`;
+      return {
+        pluginId: 'url',
+        title: `搜索：${trimmed}`,
+        description: '在 Google 中搜索',
+        icon: '🔗',
+        action: {
+          type: 'open-url',
+          payload: searchUrl,
+        },
+      };
+    }
+
+    return null;
+  },
+};

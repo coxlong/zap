@@ -1,0 +1,59 @@
+import { Plugin, Candidate } from './types';
+
+export const timestampPlugin: Plugin = {
+  id: 'timestamp',
+  name: '时间戳转换',
+  icon: '🕐',
+
+  generate(input: string): Candidate | null {
+    if (/^\d{10}$/.test(input.trim())) {
+      const timestamp = parseInt(input.trim(), 10) * 1000;
+      const date = new Date(timestamp);
+      const formatted = date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+
+      return {
+        pluginId: 'timestamp',
+        title: `时间戳：${formatted}`,
+        description: '按下 Enter 复制到剪贴板',
+        icon: '🕐',
+        action: {
+          type: 'copy',
+          payload: formatted,
+        },
+      };
+    }
+
+    if (/^\d{13}$/.test(input.trim())) {
+      const timestamp = parseInt(input.trim(), 10);
+      const date = new Date(timestamp);
+      const formatted = date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+
+      return {
+        pluginId: 'timestamp',
+        title: `时间戳：${formatted}`,
+        description: '按下 Enter 复制到剪贴板',
+        icon: '🕐',
+        action: {
+          type: 'copy',
+          payload: formatted,
+        },
+      };
+    }
+
+    return null;
+  },
+};
