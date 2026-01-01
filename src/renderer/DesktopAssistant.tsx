@@ -5,12 +5,6 @@ import {
   CommandItem,
 } from '@/renderer/components/ui/command';
 import { Input } from '@/renderer/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/renderer/components/ui/dialog';
 import { processInput } from '@/plugins';
 import { Candidate } from '@/plugins/types';
 import { Channels } from '@/main/preload';
@@ -19,6 +13,7 @@ interface WindowAPI {
   electron: {
     ipcRenderer: {
       sendMessage: (channel: Channels, ...args: unknown[]) => void;
+      send: (channel: 'window-released', ...args: unknown[]) => void;
       on: (channel: Channels, func: (...args: unknown[]) => void) => () => void;
       once: (channel: Channels, func: (...args: unknown[]) => void) => void;
     };
@@ -27,6 +22,18 @@ interface WindowAPI {
     quit: () => void;
     copyToClipboard: (text: string) => void;
     openURL: (url: string) => void;
+    openWindow: (options: {
+      data?: Record<string, unknown>;
+      config: {
+        component: string;
+        title?: string;
+        width?: number;
+        height?: number;
+        x?: number;
+        y?: number;
+        overrides?: Record<string, unknown>;
+      };
+    }) => void;
   };
 }
 
@@ -37,13 +44,18 @@ declare global {
 export function DesktopAssistant() {
   const [searchTerm, setSearchTerm] = useState('');
   const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatInput, setChatInput] = useState('');
 
   useEffect(() => {
     if (searchTerm) {
-      const results = processInput(searchTerm);
-      setCandidates(results);
+      const processAndSetCandidates = async () => {
+        try {
+          const results = await processInput(searchTerm);
+          setCandidates(results);
+        } catch {
+          setCandidates([]);
+        }
+      };
+      processAndSetCandidates();
     } else {
       setCandidates([]);
     }
@@ -65,10 +77,14 @@ export function DesktopAssistant() {
         }
         break;
 
-      case 'open-chat':
-        if (candidate.action.payload) {
-          setChatInput(candidate.action.payload);
-          setIsChatOpen(true);
+      case 'open-window':
+        if (window.desktop?.openWindow && candidate.action.payload) {
+          const { payload } = candidate.action;
+          window.desktop.openWindow({
+            data: payload.data,
+            config: payload.config,
+          });
+          window.electron?.ipcRenderer.sendMessage('close-search-window');
         }
         break;
 
@@ -159,24 +175,6 @@ export function DesktopAssistant() {
           <span>ESC</span> 关闭 · <span>⌘+数字</span> 快速选择
         </div>
       </div>
-
-      <Dialog open={isChatOpen} onOpenChange={setIsChatOpen}>
-        <DialogContent className="sm:max-w-[600px] h-[500px] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>AI 对话</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 flex flex-col p-0">
-            <div className="flex-1 p-4 overflow-y-auto">
-              <div className="p-4 rounded-lg bg-muted text-muted-foreground">
-                请输入您的问题：{chatInput}
-              </div>
-            </div>
-            <div className="p-4 border-t">
-              <Input placeholder="输入消息..." className="w-full" />
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

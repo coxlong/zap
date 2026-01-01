@@ -1,7 +1,21 @@
 export type Action =
   | { type: 'copy'; payload: string }
   | { type: 'open-url'; payload: string }
-  | { type: 'open-chat'; payload?: string };
+  | {
+      type: 'open-window';
+      payload: {
+        data?: Record<string, unknown>;
+        config: {
+          component: string;
+          title?: string;
+          width?: number;
+          height?: number;
+          x?: number;
+          y?: number;
+          overrides?: Record<string, unknown>;
+        };
+      };
+    };
 
 export interface Candidate {
   pluginId: string;
@@ -9,6 +23,8 @@ export interface Candidate {
   description: string;
   action: Action;
   icon?: string;
+  priority: number;
+  detailedDescription: string;
 }
 
 export interface Plugin {

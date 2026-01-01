@@ -14,6 +14,8 @@ export const urlPlugin: Plugin = {
         title: `打开链接：${trimmed}`,
         description: '在浏览器中打开链接',
         icon: '🔗',
+        priority: 0.8,
+        detailedDescription: `打开网页链接：${trimmed}`,
         action: {
           type: 'open-url',
           payload: trimmed,
@@ -29,6 +31,8 @@ export const urlPlugin: Plugin = {
         title: `访问网站：${trimmed}`,
         description: '在浏览器中打开',
         icon: '🔗',
+        priority: 0.8,
+        detailedDescription: `访问网站域名：${trimmed}`,
         action: {
           type: 'open-url',
           payload: url,
@@ -43,6 +47,8 @@ export const urlPlugin: Plugin = {
         title: `搜索：${trimmed}`,
         description: '在 Google 中搜索',
         icon: '🔗',
+        priority: 0.7,
+        detailedDescription: `在Google搜索：${trimmed}`,
         action: {
           type: 'open-url',
           payload: searchUrl,

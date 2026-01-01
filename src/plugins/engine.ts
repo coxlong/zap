@@ -1,12 +1,13 @@
-import { sortCandidates } from '@/sorter';
-import { Candidate } from './types';
+import { LLMRankingService } from '@/services/llmRankingService';
+import { Candidate, Plugin } from './types';
 import { timestampPlugin } from './timestamp';
 import { urlPlugin } from './url';
 import { aiPlugin } from './ai-chat';
 
-const allPlugins = [timestampPlugin, urlPlugin, aiPlugin];
+export const allPlugins: Plugin[] = [timestampPlugin, urlPlugin, aiPlugin];
+const llmRankingService = new LLMRankingService();
 
-export function processInput(input: string): Candidate[] {
+export async function processInput(input: string): Promise<Candidate[]> {
   const results = allPlugins
     .map((plugin) => {
       try {
@@ -17,5 +18,5 @@ export function processInput(input: string): Candidate[] {
     })
     .filter((c): c is Candidate => c !== null);
 
-  return sortCandidates(input, results);
+  return llmRankingService.rankCandidates(input, results);
 }

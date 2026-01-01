@@ -35,9 +35,19 @@ export const aiPlugin: Plugin = {
           title: `AI 对话：${preview}`,
           description: '点击或 Enter 打开 AI 聊天窗口',
           icon: '🤖',
+          priority: 0.5,
+          detailedDescription: `AI对话功能，用于回答用户关于"${trimmed}"的问题`,
           action: {
-            type: 'open-chat',
-            payload: trimmed,
+            type: 'open-window',
+            payload: {
+              data: { initialMessage: trimmed },
+              config: {
+                component: 'ChatWindow',
+                title: `AI 对话：${preview}`,
+                width: 800,
+                height: 600,
+              },
+            },
           },
         };
       }
