@@ -36,7 +36,7 @@ export class LLMRankingService {
     try {
       const ranked = await this.rankWithLLM(query, candidates);
       return ranked;
-    } catch (error) {
+    } catch {
       return LLMRankingService.fallbackRanking(candidates);
     }
   }

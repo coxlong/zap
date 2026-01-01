@@ -82,12 +82,14 @@
       "json"
     ],
     "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1",
       "\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/.erb/mocks/fileMock.js",
       "\\.(css|less|sass|scss)$": "identity-obj-proxy"
     },
     "setupFiles": [
       "./.erb/scripts/check-build-exists.ts"
     ],
+    "setupFilesAfterEnv": ["<rootDir>/.erb/scripts/jest-setup.js"],
     "testEnvironment": "jsdom",
     "testEnvironmentOptions": {
       "url": "http://localhost/"
@@ -114,8 +116,8 @@
     "electron-log": "^5.4.3",
     "electron-updater": "^6.3.9",
     "lucide-react": "^0.562.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "react-router-dom": "^7.3.0",
     "tailwind-merge": "^3.4.0",
     "zod": "^4.3.2"

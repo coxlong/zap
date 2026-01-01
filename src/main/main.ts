@@ -18,7 +18,12 @@ import {
   clipboard,
   protocol,
 } from 'electron';
-import { convertToModelMessages, streamText, generateText, UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  streamText,
+  generateText,
+  UIMessage,
+} from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
@@ -39,7 +44,6 @@ protocol.registerSchemesAsPrivileged([
     },
   },
 ]);
-
 
 const OLLAMA_BASE_URL = 'http://192.168.100.4:11434';
 const llmProvider = createOpenAICompatible({
@@ -271,7 +275,11 @@ app
       if (url.pathname === '/api/chat' && request.method === 'POST') {
         try {
           const body = await request.json();
-          const { messages, model = 'qwen2.5:1.5b', stream = true }: { messages: UIMessage[]; model?: string; stream?: boolean } = body;
+          const {
+            messages,
+            model = 'qwen2.5:1.5b',
+            stream = true,
+          }: { messages: UIMessage[]; model?: string; stream?: boolean } = body;
           log.info(
             `[IPC] Processing chat request for model: ${model}, messages count: ${messages?.length}, stream: ${stream}`,
           );
@@ -283,21 +291,24 @@ app
               messages: await convertToModelMessages(messages),
             });
 
-            return new Response(JSON.stringify({
-              model,
-              created_at: new Date().toISOString(),
-              message: {
-                role: 'assistant',
-                content: result.text
+            return new Response(
+              JSON.stringify({
+                model,
+                created_at: new Date().toISOString(),
+                message: {
+                  role: 'assistant',
+                  content: result.text,
+                },
+                done: true,
+                total_duration: 0,
+                load_duration: 0,
+                prompt_eval_count: result.usage?.inputTokens ?? 0,
+                eval_count: result.usage?.outputTokens ?? 0,
+              }),
+              {
+                headers: { 'Content-Type': 'application/json' },
               },
-              done: true,
-              total_duration: 0,
-              load_duration: 0,
-              prompt_eval_count: result.usage?.inputTokens ?? 0,
-              eval_count: result.usage?.outputTokens ?? 0
-            }), {
-              headers: { 'Content-Type': 'application/json' }
-            });
+            );
           }
 
           const result = streamText({
