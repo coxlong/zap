@@ -7,8 +7,8 @@ import { aiPlugin } from './ai-chat';
 export const allPlugins: Plugin[] = [timestampPlugin, urlPlugin, aiPlugin];
 const llmRankingService = new LLMRankingService();
 
-export async function processInput(input: string): Promise<Candidate[]> {
-  const results = allPlugins
+export function getLocalResults(input: string): Candidate[] {
+  return allPlugins
     .map((plugin) => {
       try {
         return plugin.generate(input);
@@ -16,7 +16,13 @@ export async function processInput(input: string): Promise<Candidate[]> {
         return null;
       }
     })
-    .filter((c): c is Candidate => c !== null);
+    .filter((c): c is Candidate => c !== null)
+    .sort((a, b) => b.priority - a.priority);
+}
 
-  return llmRankingService.rankCandidates(input, results);
+export async function rerank(
+  input: string,
+  candidates: Candidate[],
+): Promise<Candidate[]> {
+  return llmRankingService.rankCandidates(input, candidates);
 }

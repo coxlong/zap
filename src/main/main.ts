@@ -17,6 +17,9 @@ import {
   globalShortcut,
   clipboard,
   protocol,
+  Tray,
+  Menu,
+  nativeImage,
 } from 'electron';
 import {
   convertToModelMessages,
@@ -27,9 +30,15 @@ import {
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
+import {
+  WindowCorner,
+  VibrancyMaterial,
+  EffectState,
+} from '@neoframe/electron-window-corner-addon';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { windowManager } from './windowManager';
+import { configManager } from './configManager';
 
 // Register IPC protocol as privileged (must be called before app.ready)
 protocol.registerSchemesAsPrivileged([
@@ -45,12 +54,6 @@ protocol.registerSchemesAsPrivileged([
   },
 ]);
 
-const OLLAMA_BASE_URL = 'http://192.168.100.4:11434';
-const llmProvider = createOpenAICompatible({
-  name: 'ollama',
-  baseURL: `${OLLAMA_BASE_URL}/v1`,
-});
-
 class AppUpdater {
   constructor() {
     log.transports.file.level = 'info';
@@ -61,6 +64,7 @@ class AppUpdater {
 
 let mainWindow: BrowserWindow | null = null;
 let searchWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
 let isQuiting = false;
 
 ipcMain.on('ipc-example', async (event, arg) => {
@@ -71,13 +75,14 @@ ipcMain.on('ipc-example', async (event, arg) => {
 
 function createSearchWindow() {
   const window = new BrowserWindow({
-    width: 720,
-    height: 420,
+    width: 680,
+    height: 120,
     show: false,
     frame: false,
     resizable: false,
     skipTaskbar: true,
     transparent: true,
+    titleBarStyle: 'customButtonsOnHover',
     webPreferences: {
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
@@ -85,7 +90,26 @@ function createSearchWindow() {
     },
   });
 
-  window.loadURL(resolveHtmlPath('index.html'));
+  window.once('show', () => {
+    try {
+      const success = WindowCorner.setCornerRadius(
+        window,
+        25,
+        VibrancyMaterial.POPOVER,
+        EffectState.ACTIVE,
+      );
+
+      if (success) {
+        log.info('[WindowCorner] ✅ 已设置 30px 圆角 + vibrancy 效果');
+      } else {
+        log.warn('[WindowCorner] ⚠️ 设置圆角失败');
+      }
+    } catch (error) {
+      log.error('[WindowCorner] 设置错误:', error);
+    }
+  });
+
+  window.loadURL(`${resolveHtmlPath('index.html')}#/search`);
   window.setAlwaysOnTop(true, 'floating');
   window.setVisibleOnAllWorkspaces(true);
 
@@ -93,8 +117,12 @@ function createSearchWindow() {
     if (!isQuiting) {
       event.preventDefault();
       window.hide();
+    } else if (
+      process.platform === 'darwin' &&
+      (!mainWindow || mainWindow.isDestroyed())
+    ) {
+      app.quit();
     }
-    return false;
   });
 
   return window;
@@ -130,6 +158,64 @@ function toggleSearchWindow() {
   }
 }
 
+function createTrayIcon() {
+  const size = 16;
+  const buffer = Buffer.alloc(size * size * 4);
+
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const offset = (y * size + x) * 4;
+      const isEdge = x < 2 || x >= size - 2 || y < 2 || y >= size - 2;
+
+      buffer[offset] = isEdge ? 0 : 0x4a; // R
+      buffer[offset + 1] = isEdge ? 0 : 0x90; // G
+      buffer[offset + 2] = isEdge ? 0 : 0xe2; // B
+      buffer[offset + 3] = isEdge ? 0 : 0xff; // A
+    }
+  }
+
+  return nativeImage.createFromBuffer(buffer, { width: size, height: size });
+}
+
+function createTray() {
+  if (tray) return;
+
+  try {
+    tray = new Tray(createTrayIcon());
+
+    tray.setContextMenu(
+      Menu.buildFromTemplate([
+        {
+          label: '显示搜索窗口',
+          accelerator: 'Cmd+Shift+Space',
+          click: toggleSearchWindow,
+        },
+        {
+          label: '显示主窗口',
+          click: () => {
+            mainWindow?.show();
+            mainWindow?.focus();
+          },
+        },
+        { type: 'separator' },
+        {
+          label: '退出',
+          accelerator: 'Cmd+Q',
+          click: () => {
+            isQuiting = true;
+            app.quit();
+          },
+        },
+      ]),
+    );
+
+    tray.setToolTip('桌面助手');
+    tray.on('click', toggleSearchWindow);
+  } catch (error) {
+    log.error('[TRAY] Failed to create tray:', error);
+  }
+}
+
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();
@@ -139,7 +225,10 @@ const isDebug =
   process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
 
 if (isDebug) {
-  require('electron-debug').default();
+  require('electron-debug').default({
+    showDevTools: true,
+    devToolsMode: 'detach',
+  });
 }
 
 const installExtensions = async () => {
@@ -180,21 +269,22 @@ const createWindow = async () => {
     },
   });
 
-  mainWindow.loadURL(resolveHtmlPath('index.html'));
+  mainWindow.loadURL(`${resolveHtmlPath('index.html')}#/settings`);
 
   mainWindow.on('ready-to-show', () => {
-    if (!mainWindow) {
-      throw new Error('"mainWindow" is not defined');
-    }
-    if (process.env.START_MINIMIZED) {
-      mainWindow.minimize();
-    } else {
-      mainWindow.show();
-    }
+    if (!mainWindow) throw new Error('"mainWindow" is not defined');
+    if (process.env.START_MINIMIZED) mainWindow.minimize();
   });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+    if (
+      isQuiting &&
+      process.platform === 'darwin' &&
+      (!searchWindow || searchWindow.isDestroyed())
+    ) {
+      app.quit();
+    }
   });
 
   const menuBuilder = new MenuBuilder(mainWindow);
@@ -223,6 +313,23 @@ app.on('window-all-closed', () => {
   }
 });
 
+app.on('before-quit', () => {
+  if (!isQuiting) {
+    isQuiting = true;
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.close();
+    }
+    if (searchWindow && !searchWindow.isDestroyed()) {
+      searchWindow.close();
+    }
+
+    if (windowManager) {
+      windowManager.destroy();
+    }
+  }
+});
+
 ipcMain.on('close-search-window', () => {
   if (searchWindow && searchWindow.isVisible()) {
     searchWindow.hide();
@@ -232,6 +339,16 @@ ipcMain.on('close-search-window', () => {
 ipcMain.handle('quit-app', () => {
   isQuiting = true;
   app.quit();
+});
+
+ipcMain.on('resize-search-window', (_, height: number) => {
+  if (searchWindow && !searchWindow.isDestroyed()) {
+    const MAX_HEIGHT = 500;
+    const MIN_HEIGHT = 56;
+    const newHeight = Math.max(MIN_HEIGHT, Math.min(height, MAX_HEIGHT));
+    const bounds = searchWindow.getBounds();
+    searchWindow.setSize(bounds.width, newHeight, true);
+  }
 });
 
 ipcMain.handle('copy-to-clipboard', (_, text: string) => {
@@ -263,16 +380,41 @@ ipcMain.handle(
   },
 );
 
+ipcMain.handle('get-config', async () => {
+  return configManager.getConfig();
+});
+
+ipcMain.handle('update-config', async (_, config: unknown) => {
+  await configManager.updateConfig(config as any);
+  return { success: true };
+});
+
+ipcMain.handle(
+  'update-plugin-config',
+  async (_, pluginId: string, config: unknown) => {
+    await configManager.updatePluginConfig(pluginId, config as any);
+    return { success: true };
+  },
+);
+
 app
   .whenReady()
-  .then(() => {
-    // Handle IPC protocol requests
+  .then(async () => {
+    await configManager.initialize();
     protocol.handle('ipc', async (request) => {
       const url = new URL(request.url);
       log.info(`[IPC] Received request: ${request.method} ${url.pathname}`);
 
-      // POST /api/chat - Custom chat endpoint with AI SDK
-      if (url.pathname === '/api/chat' && request.method === 'POST') {
+      const config = configManager.getConfig();
+
+      // 根据模型名找到对应的提供者
+      const findProviderForModel = (modelName: string) => {
+        return config.providers.find((provider) =>
+          provider.models.includes(modelName),
+        );
+      };
+
+      if (url.pathname === '/api/chat') {
         try {
           const body = await request.json();
           const {
@@ -284,10 +426,29 @@ app
             `[IPC] Processing chat request for model: ${model}, messages count: ${messages?.length}, stream: ${stream}`,
           );
 
+          const provider = findProviderForModel(model);
+          if (!provider) {
+            log.error(`[IPC] No provider found for model: ${model}`);
+            return new Response(
+              JSON.stringify({
+                error: `No provider found for model: ${model}. Please check your configuration.`,
+              }),
+              { status: 500, headers: { 'Content-Type': 'application/json' } },
+            );
+          }
+
+          // 创建动态的 LLM provider
+          const dynamicLLMProvider = createOpenAICompatible({
+            name: provider.id,
+            baseURL: provider.baseURL,
+            apiKey: provider.apiKey || '',
+            supportsStructuredOutputs: true,
+          });
+
           // Handle non-streaming request
           if (!stream) {
             const result = await generateText({
-              model: llmProvider(model),
+              model: dynamicLLMProvider(model),
               messages: await convertToModelMessages(messages),
             });
 
@@ -312,7 +473,7 @@ app
           }
 
           const result = streamText({
-            model: llmProvider(model),
+            model: dynamicLLMProvider(model),
             messages: await convertToModelMessages(messages),
           });
 
@@ -328,33 +489,78 @@ app
         }
       }
 
-      // All other requests: passthrough to Ollama
-      const targetUrl = `${OLLAMA_BASE_URL}${url.pathname}${url.search}`;
-      log.info(`[IPC] Forwarding to: ${targetUrl}`);
+      if (url.pathname === '/chat/completions') {
+        try {
+          const requestBody = await request.arrayBuffer();
+          const bodyText = new TextDecoder().decode(requestBody);
+          const body = JSON.parse(bodyText);
+          const { model }: { model?: string } = body;
 
-      try {
-        const response = await fetch(targetUrl, {
-          method: request.method,
-          headers: request.headers,
-          body: request.body,
-          // @ts-ignore - duplex is needed for streaming request body
-          duplex: 'half',
-        });
+          log.info(`[IPC] BODY: ${JSON.stringify(body)}`);
 
-        return new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: response.headers,
-        });
-      } catch (error) {
-        log.error('[IPC] Proxy error:', error);
-        return new Response(
-          JSON.stringify({
-            error: error instanceof Error ? error.message : 'Unknown error',
-          }),
-          { status: 502, headers: { 'Content-Type': 'application/json' } },
-        );
+          if (!model) {
+            log.error('[IPC] Missing model in request body');
+            return new Response(
+              JSON.stringify({
+                error: 'Model parameter is required',
+              }),
+              { status: 400, headers: { 'Content-Type': 'application/json' } },
+            );
+          }
+
+          const provider = findProviderForModel(model);
+          if (!provider) {
+            log.error(`[IPC] No provider found for model: ${model}`);
+            return new Response(
+              JSON.stringify({
+                error: `No provider found for model: ${model}. Please check your configuration.`,
+              }),
+              { status: 500, headers: { 'Content-Type': 'application/json' } },
+            );
+          }
+
+          const targetBaseURL = provider.baseURL;
+          const targetUrl = `${targetBaseURL}${url.pathname}${url.search}`;
+          log.info(`[IPC] Forwarding to: ${targetUrl}`);
+
+          const headers = new Headers(request.headers);
+
+          if (provider.apiKey) {
+            headers.set('Authorization', `Bearer ${provider.apiKey}`);
+          }
+
+          const response = await fetch(targetUrl, {
+            method: request.method,
+            headers,
+            body: requestBody,
+            // @ts-ignore - duplex is needed for streaming request body
+            duplex: 'half',
+          });
+
+          return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+          });
+        } catch (error) {
+          log.error('[IPC] Proxy error:', error);
+          return new Response(
+            JSON.stringify({
+              error: error instanceof Error ? error.message : 'Unknown error',
+            }),
+            { status: 502, headers: { 'Content-Type': 'application/json' } },
+          );
+        }
       }
+
+      log.warn(`[IPC] Rejected request: ${request.method} ${url.pathname}`);
+      return new Response(
+        JSON.stringify({
+          error:
+            'This endpoint is not supported. Only /api/chat and /v1/chat/completions are allowed.',
+        }),
+        { status: 404, headers: { 'Content-Type': 'application/json' } },
+      );
     });
 
     globalShortcut.register('CommandOrControl+Shift+Space', () => {
@@ -383,14 +589,33 @@ app
     });
 
     createWindow();
+
+    // 先显示 searchWindow
+    setTimeout(() => {
+      toggleSearchWindow();
+    }, 500);
+
+    // 延迟创建 Tray，避免干扰 WindowCorner 的窗口选择
+    setTimeout(() => {
+      if (process.platform === 'darwin') {
+        createTray();
+        log.info('[TRAY] Tray 已创建');
+      }
+    }, 1000);
+
     app.on('activate', () => {
-      // On macOS it's common to re-create a window in the app when the
-      // dock icon is clicked and there are no other windows open.
-      if (mainWindow === null) createWindow();
+      if (!searchWindow) createSearchWindow();
+      toggleSearchWindow();
+
+      if (process.platform === 'darwin' && !tray) createTray();
     });
   })
-  .catch(log.error);
+  .catch((error) => {
+    log.error('[APP] Failed to initialize app:', error);
+    app.quit();
+  });
 
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+  tray?.destroy();
 });

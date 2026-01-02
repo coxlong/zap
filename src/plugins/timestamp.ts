@@ -23,8 +23,9 @@ export const timestampPlugin: Plugin = {
         title: `时间戳：${formatted}`,
         description: '按下 Enter 复制到剪贴板',
         icon: '🕐',
-        priority: 0.9,
+        priority: 100,
         detailedDescription: `将10位时间戳"${input.trim()}"转换为本地时间：${formatted}`,
+        rankingField: `时间戳转换 ${formatted}`,
         action: {
           type: 'copy',
           payload: formatted,
@@ -49,8 +50,9 @@ export const timestampPlugin: Plugin = {
         title: `时间戳：${formatted}`,
         description: '按下 Enter 复制到剪贴板',
         icon: '🕐',
-        priority: 0.9,
+        priority: 100,
         detailedDescription: `将13位时间戳"${input.trim()}"转换为本地时间：${formatted}`,
+        rankingField: `时间戳转换 ${formatted}`,
         action: {
           type: 'copy',
           payload: formatted,

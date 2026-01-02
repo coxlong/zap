@@ -1,12 +1,18 @@
 // Disable no-unused-vars, broken for spread args
 /* eslint no-unused-vars: off */
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import type { AppConfig, PluginConfig } from '@/types/config';
 
 export type Channels =
   | 'ipc-example'
   | 'close-search-window'
   | 'window-data'
-  | 'window-reset';
+  | 'window-reset'
+  | 'get-config'
+  | 'update-config'
+  | 'update-llm-config'
+  | 'update-plugin-config'
+  | 'update-ranking-config';
 
 export type WindowChannel = 'window-data' | 'window-reset' | 'window-released';
 
@@ -23,10 +29,11 @@ export interface WindowAPI {
     quit: () => void;
     copyToClipboard: (text: string) => void;
     openURL: (url: string) => void;
+    resizeSearchWindow: (height: number) => void;
     openWindow: (options: {
       data?: Record<string, unknown>;
       config: {
-        route: string;
+        component: string;
         title?: string;
         width?: number;
         height?: number;
@@ -35,6 +42,12 @@ export interface WindowAPI {
         overrides?: Record<string, unknown>;
       };
     }) => void;
+    getConfig: () => Promise<AppConfig>;
+    updateConfig: (config: Partial<AppConfig>) => Promise<void>;
+    updatePluginConfig: (
+      pluginId: string,
+      config: Partial<PluginConfig>,
+    ) => Promise<void>;
   };
 }
 
@@ -66,6 +79,8 @@ const desktopHandler = {
   copyToClipboard: (text: string) =>
     ipcRenderer.invoke('copy-to-clipboard', text),
   openURL: (url: string) => ipcRenderer.invoke('open-url', url),
+  resizeSearchWindow: (height: number) =>
+    ipcRenderer.send('resize-search-window', height),
   openWindow: (options: {
     data?: Record<string, unknown>;
     config: {
@@ -78,6 +93,11 @@ const desktopHandler = {
       overrides?: Record<string, unknown>;
     };
   }) => ipcRenderer.invoke('open-window', options),
+  getConfig: () => ipcRenderer.invoke('get-config'),
+  updateConfig: (config: Partial<AppConfig>) =>
+    ipcRenderer.invoke('update-config', config),
+  updatePluginConfig: (pluginId: string, config: Partial<PluginConfig>) =>
+    ipcRenderer.invoke('update-plugin-config', pluginId, config),
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);

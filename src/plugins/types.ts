@@ -1,3 +1,5 @@
+import { JSONSchema7 } from 'json-schema';
+
 export type Action =
   | { type: 'copy'; payload: string }
   | { type: 'open-url'; payload: string }
@@ -25,6 +27,7 @@ export interface Candidate {
   icon?: string;
   priority: number;
   detailedDescription: string;
+  rankingField: string;
 }
 
 export interface Plugin {
@@ -32,4 +35,7 @@ export interface Plugin {
   name: string;
   icon?: string;
   generate(input: string): Candidate | null;
+  getConfigSchema?: () => JSONSchema7;
+  getUiSchema?: () => Record<string, any>;
+  getDefaultConfig?: () => Record<string, unknown>;
 }

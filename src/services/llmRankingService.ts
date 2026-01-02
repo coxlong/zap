@@ -9,20 +9,43 @@ interface RankingCandidate {
   description: string;
   detailedDescription: string;
   priority: number;
+  rankingField: string;
 }
 
 export class LLMRankingService {
   private llmProvider: ReturnType<typeof createOpenAICompatible> | null = null;
 
-  private getLLMProvider() {
+  private async getLLMProvider() {
     if (!this.llmProvider) {
       this.llmProvider = createOpenAICompatible({
         name: 'ipc-proxy',
-        baseURL: 'ipc://localhost/v1',
-        apiKey: 'dummy',
+        baseURL: 'ipc://localhost',
+        supportsStructuredOutputs: true,
       });
     }
     return this.llmProvider;
+  }
+
+  private static async getConfig() {
+    if (typeof window !== 'undefined' && window.desktop.getConfig) {
+      try {
+        const config = await window.desktop.getConfig();
+        return config.ranking;
+      } catch {
+        return LLMRankingService.getDefaultConfig();
+      }
+    }
+    return LLMRankingService.getDefaultConfig();
+  }
+
+  private static getDefaultConfig() {
+    return {
+      modelName: 'qwen2.5:1.5b',
+      systemPrompt:
+        '你是一个智能排序助手，负责根据用户查询对功能选项进行相关性排序。请仔细分析每个候选功能的功能描述，返回最符合用户需求的排序结果。',
+      temperature: 0.1,
+      timeout: 5000,
+    };
   }
 
   async rankCandidates(
@@ -34,7 +57,8 @@ export class LLMRankingService {
     }
 
     try {
-      const ranked = await this.rankWithLLM(query, candidates);
+      const config = await LLMRankingService.getConfig();
+      const ranked = await this.rankWithLLM(query, candidates, config);
       return ranked;
     } catch {
       return LLMRankingService.fallbackRanking(candidates);
@@ -44,8 +68,9 @@ export class LLMRankingService {
   private async rankWithLLM(
     query: string,
     candidates: Candidate[],
+    config: any,
   ): Promise<Candidate[]> {
-    const llm = this.getLLMProvider();
+    const llm = await this.getLLMProvider();
 
     const rankingCandidates: RankingCandidate[] = candidates.map(
       (candidate, index) => ({
@@ -54,21 +79,27 @@ export class LLMRankingService {
         description: candidate.description,
         detailedDescription: candidate.detailedDescription,
         priority: candidate.priority,
+        rankingField: candidate.rankingField,
       }),
     );
+
+    const candidateText = rankingCandidates
+      .map((candidate) => {
+        return `${candidate.id}: ${candidate.rankingField}`;
+      })
+      .join('\n');
 
     const prompt = `请根据用户查询"${query}"，对以下候选功能进行相关性排序。
 
 候选功能信息：
-${JSON.stringify(rankingCandidates, null, 2)}
+${candidateText}
 
 请返回一个按相关性从高到低排序的候选ID列表。`;
 
     try {
       const result = await generateText({
-        model: llm('qwen2.5:1.5b'),
-        system:
-          '你是一个智能排序助手，负责根据用户查询对功能选项进行相关性排序。请仔细分析每个候选功能的功能描述，返回最符合用户需求的排序结果。请返回一个按相关性从高到低排序的候选ID列表。',
+        model: llm(config.modelName || 'qwen2.5:1.5b'),
+        system: config.systemPrompt,
         output: Output.object({
           schema: z.object({
             rankedIds: z
@@ -77,7 +108,7 @@ ${JSON.stringify(rankingCandidates, null, 2)}
           }),
         }),
         prompt,
-        temperature: 0.1,
+        temperature: config.temperature || 0.1,
       });
 
       if (!result || !result.output || !result.output.rankedIds) {

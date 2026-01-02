@@ -89,7 +89,9 @@
     "setupFiles": [
       "./.erb/scripts/check-build-exists.ts"
     ],
-    "setupFilesAfterEnv": ["<rootDir>/.erb/scripts/jest-setup.js"],
+    "setupFilesAfterEnv": [
+      "<rootDir>/.erb/scripts/jest-setup.js"
+    ],
     "testEnvironment": "jsdom",
     "testEnvironmentOptions": {
       "url": "http://localhost/"
@@ -106,9 +108,20 @@
     "@ai-sdk/openai-compatible": "^2.0.2",
     "@ai-sdk/react": "^3.0.5",
     "@electron/notarize": "^3.0.0",
+    "@neoframe/electron-window-corner-addon": "^0.1.4",
     "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-label": "^2.1.8",
+    "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-switch": "^1.2.6",
+    "@radix-ui/react-tabs": "^1.1.13",
+    "@rjsf/core": "^6.1.2",
+    "@rjsf/shadcn": "^6.1.2",
+    "@rjsf/utils": "^6.1.2",
+    "@rjsf/validator-ajv8": "^6.1.2",
     "ai": "^6.0.5",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -118,8 +131,12 @@
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
+    "react-jsonschema-form": "^1.8.1",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^7.3.0",
+    "react-syntax-highlighter": "^16.1.0",
     "tailwind-merge": "^3.4.0",
+    "use-debounce": "^10.0.6",
     "zod": "^4.3.2"
   },
   "devDependencies": {
@@ -131,9 +148,11 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@types/jest": "^29.5.14",
+    "@types/lodash.merge": "^4.6.9",
     "@types/node": "22.13.10",
     "@types/react": "^19.0.11",
     "@types/react-dom": "^19.0.4",
+    "@types/react-syntax-highlighter": "^15.5.13",
     "@types/react-test-renderer": "^19.0.0",
     "@types/webpack-bundle-analyzer": "^4.7.0",
     "@typescript-eslint/eslint-plugin": "^8.26.1",

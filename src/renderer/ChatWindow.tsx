@@ -1,9 +1,117 @@
+import React, { useEffect, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { Button } from '@/renderer/components/ui/button';
 import { Input } from '@/renderer/components/ui/input';
-import { useEffect, useRef, useState } from 'react';
 import { useWindowPreload } from '@/renderer/hooks/useWindowPreload';
+// @ts-expect-error
+import ReactMarkdown from 'react-markdown';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { prism } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+// ReactMarkdown 组件配置
+const markdownComponents = {
+  // 自定义样式
+  p: ({ children, ...props }: React.ComponentPropsWithoutRef<'p'>) => (
+    <p className="mb-2 last:mb-0" {...props}>
+      {children}
+    </p>
+  ),
+  code: ({
+    children,
+    className,
+    ...props
+  }: React.ComponentPropsWithoutRef<'code'>) => {
+    const match = /language-(\w+)/.exec(className || '');
+    const language = match ? match[1] : '';
+
+    if (language) {
+      return (
+        <SyntaxHighlighter
+          style={prism as any}
+          language={language}
+          PreTag="div"
+          className="rounded-md text-sm my-2"
+          customStyle={{
+            margin: 0,
+            padding: '1rem',
+            background: '#f8f9fa',
+            borderRadius: '0.375rem',
+          }}
+          {...props}
+        >
+          {String(children).replace(/\n$/, '')}
+        </SyntaxHighlighter>
+      );
+    }
+
+    return (
+      <code
+        className="bg-gray-200 rounded px-1 py-0.5 text-sm font-mono"
+        {...props}
+      >
+        {children}
+      </code>
+    );
+  },
+  pre: ({ children }: React.ComponentPropsWithoutRef<'pre'>) => (
+    <div>{children}</div>
+  ),
+  ul: ({ children, ...props }: React.ComponentPropsWithoutRef<'ul'>) => (
+    <ul className="list-disc list-inside space-y-1 my-2" {...props}>
+      {children}
+    </ul>
+  ),
+  ol: ({ children, ...props }: React.ComponentPropsWithoutRef<'ol'>) => (
+    <ol className="list-decimal list-inside space-y-1 my-2" {...props}>
+      {children}
+    </ol>
+  ),
+  li: ({ children, ...props }: React.ComponentPropsWithoutRef<'li'>) => (
+    <li className="ml-4" {...props}>
+      {children}
+    </li>
+  ),
+  blockquote: ({
+    children,
+    ...props
+  }: React.ComponentPropsWithoutRef<'blockquote'>) => (
+    <blockquote
+      className="border-l-4 border-gray-300 pl-4 italic my-2"
+      {...props}
+    >
+      {children}
+    </blockquote>
+  ),
+  h1: ({ children, ...props }: React.ComponentPropsWithoutRef<'h1'>) => (
+    <h1 className="text-2xl font-bold my-3" {...props}>
+      {children}
+    </h1>
+  ),
+  h2: ({ children, ...props }: React.ComponentPropsWithoutRef<'h2'>) => (
+    <h2 className="text-xl font-bold my-2" {...props}>
+      {children}
+    </h2>
+  ),
+  h3: ({ children, ...props }: React.ComponentPropsWithoutRef<'h3'>) => (
+    <h3 className="text-lg font-bold my-2" {...props}>
+      {children}
+    </h3>
+  ),
+  strong: ({
+    children,
+    ...props
+  }: React.ComponentPropsWithoutRef<'strong'>) => (
+    <strong className="font-semibold" {...props}>
+      {children}
+    </strong>
+  ),
+  em: ({ children, ...props }: React.ComponentPropsWithoutRef<'em'>) => (
+    <em className="italic" {...props}>
+      {children}
+    </em>
+  ),
+};
 
 interface ChatData {
   initialMessage?: string;
@@ -68,7 +176,15 @@ export function ChatWindow() {
             >
               {message.parts.map((part) =>
                 part.type === 'text' ? (
-                  <span key={part.text.slice(0, 10)}>{part.text}</span>
+                  <div key={part.text.slice(0, 10)}>
+                    {message.role === 'assistant' ? (
+                      <ReactMarkdown components={markdownComponents}>
+                        {part.text}
+                      </ReactMarkdown>
+                    ) : (
+                      <span>{part.text}</span>
+                    )}
+                  </div>
                 ) : null,
               )}
             </div>
