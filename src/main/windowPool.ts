@@ -172,6 +172,7 @@ export class WindowPool {
       width: this.config.defaultSize.width,
       height: this.config.defaultSize.height,
       show: false,
+      skipTaskbar: false,
       webPreferences: {
         preload: getPreloadPath(),
         contextIsolation: true,

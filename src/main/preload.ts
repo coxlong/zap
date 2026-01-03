@@ -6,9 +6,11 @@ import type { AppConfig, PluginConfig } from '@/types/config';
 export type Channels =
   | 'ipc-example'
   | 'close-search-window'
+  | 'search-window-focus'
   | 'window-data'
   | 'window-reset'
   | 'get-config'
+  | 'get-plugin-config'
   | 'update-config'
   | 'update-llm-config'
   | 'update-plugin-config'
@@ -43,6 +45,7 @@ export interface WindowAPI {
       };
     }) => void;
     getConfig: () => Promise<AppConfig>;
+    getPluginConfig: (pluginId: string) => Promise<PluginConfig | null>;
     updateConfig: (config: Partial<AppConfig>) => Promise<void>;
     updatePluginConfig: (
       pluginId: string,
@@ -94,6 +97,8 @@ const desktopHandler = {
     };
   }) => ipcRenderer.invoke('open-window', options),
   getConfig: () => ipcRenderer.invoke('get-config'),
+  getPluginConfig: (pluginId: string) =>
+    ipcRenderer.invoke('get-plugin-config', pluginId),
   updateConfig: (config: Partial<AppConfig>) =>
     ipcRenderer.invoke('update-config', config),
   updatePluginConfig: (pluginId: string, config: Partial<PluginConfig>) =>

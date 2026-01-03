@@ -1,5 +1,5 @@
-import { JSONSchema7 } from 'json-schema';
 import { Plugin, Candidate } from './types';
+import { AIChatConfig } from './components/AIChatConfig';
 
 export const aiPlugin: Plugin = {
   id: 'ai-chat',
@@ -58,50 +58,12 @@ export const aiPlugin: Plugin = {
     return null;
   },
 
-  getConfigSchema(): JSONSchema7 {
-    return {
-      type: 'object',
-      title: 'AI 聊天插件配置',
-      description: '配置 AI 聊天插件的各项参数',
-      properties: {
-        defaultModel: {
-          type: 'string',
-          title: '默认模型',
-          description: 'AI 聊天使用的默认模型',
-          default: 'qwen2.5:1.5b',
-        },
-        availableModels: {
-          type: 'array',
-          title: '可选模型列表',
-          description: '用户可选择的 AI 模型列表',
-          items: {
-            type: 'string',
-          },
-          default: ['qwen2.5:1.5b'],
-        },
-      },
-      required: ['defaultModel'],
-    };
-  },
-
-  getUiSchema() {
-    return {
-      defaultModel: {
-        'ui:help': '选择 AI 聊天使用的默认模型',
-        'ui:placeholder': '输入模型名称',
-      },
-      availableModels: {
-        'ui:help': '添加用户可选择的 AI 模型',
-        'ui:options': {
-          orderable: false,
-        },
-      },
-    };
+  getConfigComponent() {
+    return AIChatConfig;
   },
 
   getDefaultConfig() {
     return {
-      defaultModel: 'qwen2.5:1.5b',
       availableModels: ['qwen2.5:1.5b'],
     };
   },

@@ -16,7 +16,6 @@ export interface PluginsConfig {
 }
 
 export interface AIChatPluginConfig extends PluginConfig {
-  defaultModel: string;
   availableModels: string[];
 }
 
@@ -47,7 +46,6 @@ export const DEFAULT_CONFIG: AppConfig = {
   plugins: {
     'ai-chat': {
       enabled: true,
-      defaultModel: 'qwen2.5:1.5b',
       availableModels: ['qwen2.5:1.5b'],
     },
     timestamp: {

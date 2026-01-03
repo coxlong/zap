@@ -74,7 +74,7 @@ export function SettingsWindow({
   }
 
   return (
-    <div className="h-screen bg-background">
+    <div className="h-screen bg-background overflow-hidden">
       <SettingsPanel
         config={config}
         onConfigUpdate={handleConfigUpdate}

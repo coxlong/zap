@@ -1,4 +1,4 @@
-import { JSONSchema7 } from 'json-schema';
+import { ComponentType } from 'react';
 
 export type Action =
   | { type: 'copy'; payload: string }
@@ -30,12 +30,16 @@ export interface Candidate {
   rankingField: string;
 }
 
+export interface PluginConfigProps {
+  config: Record<string, unknown>;
+  onSave: (config: Record<string, unknown>) => void;
+}
+
 export interface Plugin {
   id: string;
   name: string;
   icon?: string;
   generate(input: string): Candidate | null;
-  getConfigSchema?: () => JSONSchema7;
-  getUiSchema?: () => Record<string, any>;
+  getConfigComponent?: () => ComponentType<PluginConfigProps>;
   getDefaultConfig?: () => Record<string, unknown>;
 }

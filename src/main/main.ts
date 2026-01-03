@@ -30,11 +30,6 @@ import {
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import {
-  WindowCorner,
-  VibrancyMaterial,
-  EffectState,
-} from '@neoframe/electron-window-corner-addon';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { windowManager } from './windowManager';
@@ -82,7 +77,8 @@ function createSearchWindow() {
     resizable: false,
     skipTaskbar: true,
     transparent: true,
-    titleBarStyle: 'customButtonsOnHover',
+    vibrancy: 'hud',
+    roundedCorners: true,
     webPreferences: {
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
@@ -91,26 +87,12 @@ function createSearchWindow() {
   });
 
   window.once('show', () => {
-    try {
-      const success = WindowCorner.setCornerRadius(
-        window,
-        25,
-        VibrancyMaterial.POPOVER,
-        EffectState.ACTIVE,
-      );
-
-      if (success) {
-        log.info('[WindowCorner] ✅ 已设置 30px 圆角 + vibrancy 效果');
-      } else {
-        log.warn('[WindowCorner] ⚠️ 设置圆角失败');
-      }
-    } catch (error) {
-      log.error('[WindowCorner] 设置错误:', error);
-    }
+    // Auto-focus the search input when window shows
+    window.webContents.send('search-window-focus');
   });
 
   window.loadURL(`${resolveHtmlPath('index.html')}#/search`);
-  window.setAlwaysOnTop(true, 'floating');
+  window.setAlwaysOnTop(true, 'pop-up-menu');
   window.setVisibleOnAllWorkspaces(true);
 
   window.on('close', (event) => {
@@ -186,12 +168,12 @@ function createTray() {
     tray.setContextMenu(
       Menu.buildFromTemplate([
         {
-          label: '显示搜索窗口',
+          label: '搜索',
           accelerator: 'Cmd+Shift+Space',
           click: toggleSearchWindow,
         },
         {
-          label: '显示主窗口',
+          label: '设置',
           click: () => {
             mainWindow?.show();
             mainWindow?.focus();
@@ -209,7 +191,7 @@ function createTray() {
       ]),
     );
 
-    tray.setToolTip('桌面助手');
+    tray.setToolTip('Zap 助手');
     tray.on('click', toggleSearchWindow);
   } catch (error) {
     log.error('[TRAY] Failed to create tray:', error);
@@ -273,7 +255,11 @@ const createWindow = async () => {
 
   mainWindow.on('ready-to-show', () => {
     if (!mainWindow) throw new Error('"mainWindow" is not defined');
-    if (process.env.START_MINIMIZED) mainWindow.minimize();
+    if (process.env.START_MINIMIZED) {
+      mainWindow.minimize();
+    } else {
+      mainWindow.show();
+    }
   });
 
   mainWindow.on('closed', () => {
@@ -344,7 +330,7 @@ ipcMain.handle('quit-app', () => {
 ipcMain.on('resize-search-window', (_, height: number) => {
   if (searchWindow && !searchWindow.isDestroyed()) {
     const MAX_HEIGHT = 500;
-    const MIN_HEIGHT = 56;
+    const MIN_HEIGHT = 64;
     const newHeight = Math.max(MIN_HEIGHT, Math.min(height, MAX_HEIGHT));
     const bounds = searchWindow.getBounds();
     searchWindow.setSize(bounds.width, newHeight, true);
@@ -382,6 +368,11 @@ ipcMain.handle(
 
 ipcMain.handle('get-config', async () => {
   return configManager.getConfig();
+});
+
+ipcMain.handle('get-plugin-config', async (_, pluginId: string) => {
+  const config = configManager.getConfig();
+  return config.plugins[pluginId] || null;
 });
 
 ipcMain.handle('update-config', async (_, config: unknown) => {
@@ -590,18 +581,13 @@ app
 
     createWindow();
 
-    // 先显示 searchWindow
-    setTimeout(() => {
-      toggleSearchWindow();
-    }, 500);
-
-    // 延迟创建 Tray，避免干扰 WindowCorner 的窗口选择
+    // Create tray icon
     setTimeout(() => {
       if (process.platform === 'darwin') {
         createTray();
         log.info('[TRAY] Tray 已创建');
       }
-    }, 1000);
+    }, 500);
 
     app.on('activate', () => {
       if (!searchWindow) createSearchWindow();

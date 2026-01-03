@@ -1,9 +1,17 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { Button } from '@/renderer/components/ui/button';
 import { Input } from '@/renderer/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/renderer/components/ui/select';
 import { useWindowPreload } from '@/renderer/hooks/useWindowPreload';
+import type { AIChatPluginConfig } from '@/types/config';
 // @ts-expect-error
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -121,6 +129,25 @@ export function ChatWindow() {
   const { data, isReady } = useWindowPreload<ChatData>();
   const initialMessage = data?.initialMessage;
   const [input, setInput] = useState('');
+  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+
+  useEffect(() => {
+    const loadPluginConfig = async () => {
+      try {
+        const config = await window.desktop.getPluginConfig('ai-chat');
+        if (config) {
+          const aiChatConfig = config as AIChatPluginConfig;
+          setAvailableModels(aiChatConfig.availableModels || []);
+          setSelectedModel(aiChatConfig.availableModels[0] || '');
+        }
+      } catch {
+        // Failed to load plugin config
+      }
+    };
+
+    loadPluginConfig();
+  }, []);
 
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
@@ -128,14 +155,35 @@ export function ChatWindow() {
     }),
   });
 
+  const sendMessageWithModel = useCallback(
+    (text: string) => {
+      sendMessage(
+        {
+          text,
+        },
+        {
+          body: {
+            model: selectedModel,
+          },
+        },
+      );
+    },
+    [sendMessage, selectedModel],
+  );
+
   const hasSentInitialMessageRef = useRef(false);
 
   useEffect(() => {
-    if (isReady && initialMessage && !hasSentInitialMessageRef.current) {
+    if (
+      isReady &&
+      initialMessage &&
+      !hasSentInitialMessageRef.current &&
+      selectedModel
+    ) {
       hasSentInitialMessageRef.current = true;
-      sendMessage({ text: initialMessage });
+      sendMessageWithModel(initialMessage);
     }
-  }, [isReady, initialMessage, sendMessage]);
+  }, [isReady, initialMessage, sendMessageWithModel, selectedModel]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -157,8 +205,23 @@ export function ChatWindow() {
 
   return (
     <div className="w-full h-screen bg-white flex flex-col">
-      <div className="bg-gray-50 border-b p-4">
+      <div className="bg-gray-50 border-b p-4 flex items-center justify-between">
         <h1 className="text-lg font-semibold">AI 对话</h1>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">模型:</span>
+          <Select value={selectedModel} onValueChange={setSelectedModel}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="选择模型" />
+            </SelectTrigger>
+            <SelectContent>
+              {availableModels.map((model) => (
+                <SelectItem key={model} value={model}>
+                  {model}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -204,7 +267,7 @@ export function ChatWindow() {
         onSubmit={(e) => {
           e.preventDefault();
           if (input.trim()) {
-            sendMessage({ text: input });
+            sendMessageWithModel(input);
             setInput('');
           }
         }}
