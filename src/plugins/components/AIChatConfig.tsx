@@ -3,6 +3,7 @@ import { Plus, GripVertical, Trash2 } from 'lucide-react';
 import { Button } from '@/renderer/components/ui/button';
 import { Input } from '@/renderer/components/ui/input';
 import { Label } from '@/renderer/components/ui/label';
+import { toast } from 'sonner';
 import { PluginConfigProps } from '../types';
 
 export function AIChatConfig({ config, onSave }: PluginConfigProps) {
@@ -16,6 +17,11 @@ export function AIChatConfig({ config, onSave }: PluginConfigProps) {
       const updated = [...models, newModel.trim()];
       setModels(updated);
       setNewModel('');
+      toast.success('模型添加成功');
+    } else if (!newModel.trim()) {
+      toast.error('请输入模型名称');
+    } else {
+      toast.error('该模型已存在');
     }
   };
 
@@ -23,6 +29,9 @@ export function AIChatConfig({ config, onSave }: PluginConfigProps) {
     if (models.length > 1) {
       const updated = models.filter((_, i) => i !== index);
       setModels(updated);
+      toast.success('模型删除成功');
+    } else {
+      toast.error('至少需要保留一个模型');
     }
   };
 
@@ -50,6 +59,7 @@ export function AIChatConfig({ config, onSave }: PluginConfigProps) {
 
   const handleSave = () => {
     onSave({ availableModels: models });
+    toast.success('AI 聊天配置保存成功');
   };
 
   return (

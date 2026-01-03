@@ -16,6 +16,7 @@ import { Label } from '@/renderer/components/ui/label';
 import { Textarea } from '@/renderer/components/ui/textarea';
 import { PluginSettings } from '@/renderer/views/PluginSettings';
 import { Separator } from '@/renderer/components/ui/separator';
+import { toast } from 'sonner';
 
 interface SettingsPanelProps {
   config: AppConfig;
@@ -91,8 +92,13 @@ export function SettingsPanel({
     }));
   };
 
-  const handleSaveAll = () => {
-    onConfigUpdate(localConfig);
+  const handleSaveAll = async () => {
+    try {
+      await onConfigUpdate(localConfig);
+      toast.success('配置保存成功');
+    } catch {
+      toast.error('配置保存失败');
+    }
   };
 
   const handleReset = () => {

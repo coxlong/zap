@@ -107,7 +107,7 @@ export function SearchStateProvider({
     }
     abortControllerRef.current = new AbortController();
 
-    const localResults = getLocalResults(term);
+    const localResults = await getLocalResults(term);
     dispatch({ type: 'SET_RESULTS', payload: localResults });
 
     try {

@@ -6,56 +6,58 @@ export const aiPlugin: Plugin = {
   name: 'AI 对话',
   icon: '🤖',
 
-  generate(input: string): Candidate | null {
+  async generate(input: string): Promise<Candidate[]> {
     const trimmed = input.trim();
+    const results: Candidate[] = [];
 
-    if (
-      /^\d+$/.test(trimmed) &&
-      (trimmed.length === 10 || trimmed.length === 13)
-    ) {
-      return null;
+    const isAskCommand = trimmed.startsWith('/ask');
+    const initialMessage = isAskCommand ? trimmed.substring(4).trim() : trimmed;
+
+    let availableModels: string[] = [];
+    try {
+      const config = await window.desktop.getPluginConfig('ai-chat');
+      if (config && config.availableModels) {
+        availableModels = config.availableModels as string[];
+      }
+    } catch {
+      // 如果获取配置失败，使用默认模型
     }
 
-    if (/^https?:\/\/.+/i.test(trimmed)) {
-      return null;
-    }
+    const modelsToUse = isAskCommand ? availableModels : [availableModels[0]];
 
-    if (/^(www\.)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$/i.test(trimmed)) {
-      return null;
-    }
+    modelsToUse.forEach((model) => {
+      const preview =
+        initialMessage.length > 30
+          ? `${initialMessage.substring(0, 30)}...`
+          : initialMessage;
 
-    if (trimmed.length > 2 && trimmed.length <= 200) {
-      const hasValidContent = /[\u4e00-\u9fa5a-zA-Z]/.test(trimmed);
-
-      if (hasValidContent) {
-        const preview =
-          trimmed.length > 30 ? `${trimmed.substring(0, 30)}...` : trimmed;
-
-        return {
-          pluginId: 'ai-chat',
-          title: `AI 对话：${preview}`,
-          description: '点击或 Enter 打开 AI 聊天窗口',
-          icon: '🤖',
-          priority: 70,
-          detailedDescription: `AI对话功能，用于回答用户关于"${trimmed}"的问题`,
-          rankingField: `AI对话 ${preview}`,
-          action: {
-            type: 'open-window',
-            payload: {
-              data: { initialMessage: trimmed },
-              config: {
-                component: 'ChatWindow',
-                title: `AI 对话：${preview}`,
-                width: 800,
-                height: 600,
-              },
+      results.push({
+        pluginId: 'ai-chat',
+        title: `AI 对话：${preview}`,
+        description: '点击或 Enter 打开 AI 聊天窗口',
+        icon: '🤖',
+        priority: 70,
+        detailedDescription: `AI对话功能，用于回答用户关于"${initialMessage}"的问题`,
+        rankingField: `AI对话 ${preview}`,
+        action: {
+          type: 'open-window',
+          payload: {
+            data: {
+              initialMessage: isAskCommand ? initialMessage : '',
+              model,
+            },
+            config: {
+              component: 'ChatWindow',
+              title: `AI 对话：${preview}`,
+              width: 800,
+              height: 600,
             },
           },
-        };
-      }
-    }
+        },
+      });
+    });
 
-    return null;
+    return results;
   },
 
   getConfigComponent() {

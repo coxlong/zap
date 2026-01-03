@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import { promises as fs } from 'fs';
 import { join } from 'path';
+import { homedir } from 'os';
 import merge from 'lodash.merge';
 import { AppConfig, DEFAULT_CONFIG } from '../types/config';
 
@@ -9,8 +10,11 @@ export class ConfigManager {
 
   private configPath: string;
 
+  private configDir: string;
+
   constructor() {
-    this.configPath = join(app.getPath('userData'), 'config.json');
+    this.configDir = join(homedir(), '.config', app.getName());
+    this.configPath = join(this.configDir, 'config.json');
     this.config = { ...DEFAULT_CONFIG };
   }
 
@@ -29,7 +33,7 @@ export class ConfigManager {
   }
 
   async saveConfig(): Promise<void> {
-    await fs.mkdir(app.getPath('userData'), { recursive: true });
+    await fs.mkdir(this.configDir, { recursive: true });
     await fs.writeFile(this.configPath, JSON.stringify(this.config, null, 2));
   }
 

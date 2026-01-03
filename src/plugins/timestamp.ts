@@ -5,9 +5,12 @@ export const timestampPlugin: Plugin = {
   name: '时间戳转换',
   icon: '🕐',
 
-  generate(input: string): Candidate | null {
-    if (/^\d{10}$/.test(input.trim())) {
-      const timestamp = parseInt(input.trim(), 10) * 1000;
+  async generate(input: string): Promise<Candidate[]> {
+    const results: Candidate[] = [];
+    const trimmed = input.trim();
+
+    if (/^\d{10}$/.test(trimmed)) {
+      const timestamp = parseInt(trimmed, 10) * 1000;
       const date = new Date(timestamp);
       const formatted = date.toLocaleString('zh-CN', {
         year: 'numeric',
@@ -18,23 +21,23 @@ export const timestampPlugin: Plugin = {
         second: '2-digit',
       });
 
-      return {
+      results.push({
         pluginId: 'timestamp',
         title: `时间戳：${formatted}`,
         description: '按下 Enter 复制到剪贴板',
         icon: '🕐',
         priority: 100,
-        detailedDescription: `将10位时间戳"${input.trim()}"转换为本地时间：${formatted}`,
+        detailedDescription: `将10位时间戳"${trimmed}"转换为本地时间：${formatted}`,
         rankingField: `时间戳转换 ${formatted}`,
         action: {
           type: 'copy',
           payload: formatted,
         },
-      };
+      });
     }
 
-    if (/^\d{13}$/.test(input.trim())) {
-      const timestamp = parseInt(input.trim(), 10);
+    if (/^\d{13}$/.test(trimmed)) {
+      const timestamp = parseInt(trimmed, 10);
       const date = new Date(timestamp);
       const formatted = date.toLocaleString('zh-CN', {
         year: 'numeric',
@@ -45,21 +48,21 @@ export const timestampPlugin: Plugin = {
         second: '2-digit',
       });
 
-      return {
+      results.push({
         pluginId: 'timestamp',
         title: `时间戳：${formatted}`,
         description: '按下 Enter 复制到剪贴板',
         icon: '🕐',
         priority: 100,
-        detailedDescription: `将13位时间戳"${input.trim()}"转换为本地时间：${formatted}`,
+        detailedDescription: `将13位时间戳"${trimmed}"转换为本地时间：${formatted}`,
         rankingField: `时间戳转换 ${formatted}`,
         action: {
           type: 'copy',
           payload: formatted,
         },
-      };
+      });
     }
 
-    return null;
+    return results;
   },
 };

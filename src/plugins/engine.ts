@@ -7,16 +7,19 @@ import { aiPlugin } from './ai-chat';
 export const allPlugins: Plugin[] = [timestampPlugin, urlPlugin, aiPlugin];
 const llmRankingService = new LLMRankingService();
 
-export function getLocalResults(input: string): Candidate[] {
-  return allPlugins
-    .map((plugin) => {
+export async function getLocalResults(input: string): Promise<Candidate[]> {
+  const results = await Promise.all(
+    allPlugins.map(async (plugin) => {
       try {
-        return plugin.generate(input);
+        return await plugin.generate(input);
       } catch {
-        return null;
+        return [];
       }
     })
-    .filter((c): c is Candidate => c !== null)
+  );
+
+  return results
+    .flat()
     .sort((a, b) => b.priority - a.priority);
 }
 

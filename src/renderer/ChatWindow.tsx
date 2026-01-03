@@ -16,6 +16,7 @@ import type { AIChatPluginConfig } from '@/types/config';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { prism } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { toast } from 'sonner';
 
 // ReactMarkdown 组件配置
 const markdownComponents = {
@@ -123,6 +124,7 @@ const markdownComponents = {
 
 interface ChatData {
   initialMessage?: string;
+  model?: string;
 }
 
 export function ChatWindow() {
@@ -139,15 +141,23 @@ export function ChatWindow() {
         if (config) {
           const aiChatConfig = config as AIChatPluginConfig;
           setAvailableModels(aiChatConfig.availableModels || []);
-          setSelectedModel(aiChatConfig.availableModels[0] || '');
+
+          if (
+            data?.model &&
+            aiChatConfig.availableModels.includes(data.model)
+          ) {
+            setSelectedModel(data.model);
+          } else {
+            setSelectedModel(aiChatConfig.availableModels[0] || '');
+          }
         }
       } catch {
-        // Failed to load plugin config
+        toast.error('加载插件配置失败');
       }
     };
 
     loadPluginConfig();
-  }, []);
+  }, [data?.model]);
 
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
@@ -157,6 +167,11 @@ export function ChatWindow() {
 
   const sendMessageWithModel = useCallback(
     (text: string) => {
+      if (!selectedModel) {
+        toast.error('请先选择模型');
+        return;
+      }
+
       sendMessage(
         {
           text,
@@ -177,6 +192,7 @@ export function ChatWindow() {
     if (
       isReady &&
       initialMessage &&
+      initialMessage.trim() !== '' &&
       !hasSentInitialMessageRef.current &&
       selectedModel
     ) {

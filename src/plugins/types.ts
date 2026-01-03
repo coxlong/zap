@@ -39,7 +39,7 @@ export interface Plugin {
   id: string;
   name: string;
   icon?: string;
-  generate(input: string): Candidate | null;
+  generate(input: string): Promise<Candidate[]>;
   getConfigComponent?: () => ComponentType<PluginConfigProps>;
   getDefaultConfig?: () => Record<string, unknown>;
 }
