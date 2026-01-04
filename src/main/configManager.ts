@@ -3,8 +3,8 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import merge from 'lodash.merge';
-import { AppConfig, DEFAULT_CONFIG } from '../types/config';
 import log from 'electron-log/main';
+import { AppConfig, DEFAULT_CONFIG } from '../types/config';
 
 export class ConfigManager {
   private config: AppConfig;
@@ -48,7 +48,9 @@ export class ConfigManager {
 
   getConfig(): AppConfig {
     if (!this.initialized) {
-      log.warn('[ConfigManager] getConfig called before initialization, returning default config');
+      log.warn(
+        '[ConfigManager] getConfig called before initialization, returning default config',
+      );
     }
     return { ...this.config };
   }

@@ -8,6 +8,7 @@ import type {
   WindowPoolState,
 } from '../types/window';
 import { configManager } from './configManager';
+import { resolveHtmlPath } from './util';
 
 interface IdleWindow {
   window: BrowserWindow;
@@ -57,11 +58,7 @@ function getPreloadPath(): string {
  * 用于窗口加载时的页面URL
  */
 function getAppPageUrl(options: { component: string }): string {
-  // 打包时使用 file:// 协议加载本地文件
-  // 开发时使用 localhost 开发服务器
-  const base = app.isPackaged
-    ? `file://${path.join(__dirname, '../renderer/index.html')}`
-    : `http://localhost:${process.env.PORT || 1212}`;
+  const base = resolveHtmlPath('index.html');
 
   // 如果有组件参数，使用 /plugin 路由
   if (options?.component) {
@@ -196,7 +193,7 @@ export class WindowPool {
 
     WindowPool.ensureCorrectUrl(window, options.config)
       .then(() => {
-        const { config, data } = options;
+        const { config } = options;
 
         // 设置窗口属性
         if (config.width && config.height) {
@@ -219,8 +216,14 @@ export class WindowPool {
 
         WindowPool.sendInitialDataIfNeeded(window, options);
 
+        window.setAlwaysOnTop(true, 'floating');
         window.show();
         window.focus();
+        setTimeout(() => {
+          if (!window.isDestroyed()) {
+            window.setAlwaysOnTop(false);
+          }
+        }, 100);
         return null;
       })
       .catch((error: Error) => {
@@ -251,7 +254,7 @@ export class WindowPool {
     overrides: NonNullable<OpenWindowOptions['config']['overrides']>,
   ): void {
     if (overrides.alwaysOnTop !== undefined) {
-      window.setAlwaysOnTop(overrides.alwaysOnTop, 'floating');
+      window.setAlwaysOnTop(overrides.alwaysOnTop, 'screen-saver', 1);
     }
 
     if (overrides.skipTaskbar !== undefined) {
@@ -364,7 +367,7 @@ export class WindowPool {
     }
 
     for (let i = 0; i < shortage; i += 1) {
-      this.createNewWindow('default')
+      this.createNewWindow('ChatWindow')
         .then((window) => this.recycle(window))
         .catch((error) => {
           log.error('Failed to create window for pool:', error);

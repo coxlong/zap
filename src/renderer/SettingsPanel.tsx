@@ -123,6 +123,7 @@ export function SettingsPanel({
         <nav className="flex-1 px-4 space-y-1">
           {menuItems.map((item) => (
             <button
+              key={item.id}
               type="button"
               onClick={() => setActiveSection(item.id)}
               className={cn(

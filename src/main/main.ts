@@ -90,8 +90,8 @@ function createSearchWindow() {
   });
 
   window.loadURL(`${resolveHtmlPath('index.html')}#/search`);
-  window.setAlwaysOnTop(true, 'pop-up-menu');
-  window.setVisibleOnAllWorkspaces(true);
+  window.setAlwaysOnTop(true, 'screen-saver', 1);
+  window.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
 
   window.on('close', (event) => {
     if (!isQuiting) {
@@ -133,6 +133,7 @@ function toggleSearchWindow() {
     searchWindow.hide();
   } else {
     centerSearchWindow();
+    searchWindow.setAlwaysOnTop(true, 'screen-saver', 1);
     searchWindow.show();
     searchWindow.focus();
   }
@@ -361,6 +362,9 @@ ipcMain.handle(
       };
     },
   ) => {
+    if (searchWindow && searchWindow.isVisible()) {
+      searchWindow.hide();
+    }
     windowManager.openWindow(options);
   },
 );
@@ -372,7 +376,6 @@ ipcMain.handle('get-config', async () => {
 ipcMain.handle('get-plugin-config', async (_, pluginId: string) => {
   try {
     const config = configManager.getConfig();
-    log.info('[IPC] get-plugin-config:', pluginId, config.plugins[pluginId]);
     return config.plugins[pluginId] || null;
   } catch (error) {
     log.error('[IPC] get-plugin-config error:', error);
@@ -473,7 +476,9 @@ app
             messages: await convertToModelMessages(messages),
           });
 
-          return result.toUIMessageStreamResponse();
+          return result.toUIMessageStreamResponse({
+            sendReasoning: true,
+          });
         } catch (error) {
           log.error('[IPC] Chat protocol error:', error);
           return new Response(
