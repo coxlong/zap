@@ -66,6 +66,7 @@ function SearchContent() {
           if (window.desktop?.openWindow && candidate.action.payload) {
             const { payload } = candidate.action;
             window.desktop.openWindow({
+              pluginId: payload.pluginId,
               data: payload.data,
               config: payload.config,
             });

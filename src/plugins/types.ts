@@ -6,6 +6,7 @@ export type Action =
   | {
       type: 'open-window';
       payload: {
+        pluginId: string;
         data?: Record<string, unknown>;
         config: {
           component: string;

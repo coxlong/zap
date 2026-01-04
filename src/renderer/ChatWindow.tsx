@@ -17,7 +17,6 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { prism } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { toast } from 'sonner';
-import log from 'electron-log/renderer';
 
 // ReactMarkdown 组件配置
 const markdownComponents = {
@@ -126,39 +125,33 @@ const markdownComponents = {
 interface ChatData {
   initialMessage?: string;
   model?: string;
+  pluginConfig?: AIChatPluginConfig;
 }
 
 interface ChatWindowProps extends ChatData {}
 
 export function ChatWindow(props: ChatWindowProps = {}) {
-  const { initialMessage } = props;
+  const { initialMessage, pluginConfig } = props;
   const propModel = props.model;
   const [input, setInput] = useState('');
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [availableModels, setAvailableModels] = useState<string[]>([]);
 
   useEffect(() => {
-    const loadPluginConfig = async () => {
-      try {
-        const config = await window.desktop.getPluginConfig('ai-chat');
-        if (config) {
-          const aiChatConfig = config as AIChatPluginConfig;
-          setAvailableModels(aiChatConfig.availableModels || []);
+    if (pluginConfig) {
+      setAvailableModels(pluginConfig.availableModels || []);
+    }
+  }, [pluginConfig]);
 
-          if (propModel && aiChatConfig.availableModels.includes(propModel)) {
-            setSelectedModel(propModel);
-          } else {
-            setSelectedModel(aiChatConfig.availableModels[0] || '');
-          }
-        }
-      } catch (error) {
-        log.error('[ChatWindow] load plugin config failed. ', error);
-        toast.error('加载插件配置失败');
+  useEffect(() => {
+    if (availableModels.length > 0) {
+      if (propModel && availableModels.includes(propModel)) {
+        setSelectedModel(propModel);
+      } else {
+        setSelectedModel(availableModels[0]);
       }
-    };
-
-    loadPluginConfig();
-  }, [propModel]);
+    }
+  }, [availableModels, propModel]);
 
   const { messages, sendMessage, status, error, clearError } = useChat({
     transport: new DefaultChatTransport({

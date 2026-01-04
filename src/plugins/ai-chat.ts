@@ -39,6 +39,7 @@ export const aiPlugin: Plugin = {
         action: {
           type: 'open-window',
           payload: {
+            pluginId: 'ai-chat',
             data: {
               initialMessage,
               model,

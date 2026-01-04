@@ -4,6 +4,7 @@ import { join } from 'path';
 import { homedir } from 'os';
 import merge from 'lodash.merge';
 import { AppConfig, DEFAULT_CONFIG } from '../types/config';
+import log from 'electron-log/main';
 
 export class ConfigManager {
   private config: AppConfig;
@@ -12,6 +13,8 @@ export class ConfigManager {
 
   private configDir: string;
 
+  private initialized = false;
+
   constructor() {
     this.configDir = join(homedir(), '.config', app.getName());
     this.configPath = join(this.configDir, 'config.json');
@@ -19,6 +22,8 @@ export class ConfigManager {
   }
 
   async initialize(): Promise<void> {
+    if (this.initialized) return;
+
     try {
       const data = await fs.readFile(this.configPath, 'utf-8');
       const savedConfig = JSON.parse(data);
@@ -26,9 +31,13 @@ export class ConfigManager {
       this.config = merge({}, DEFAULT_CONFIG, savedConfig);
 
       await this.saveConfig();
+      this.initialized = true;
+      log.info('[ConfigManager] Configuration initialized successfully');
     } catch {
       // Config file not found or invalid, using default config
       await this.saveConfig();
+      this.initialized = true;
+      log.info('[ConfigManager] Using default configuration');
     }
   }
 
@@ -38,6 +47,9 @@ export class ConfigManager {
   }
 
   getConfig(): AppConfig {
+    if (!this.initialized) {
+      log.warn('[ConfigManager] getConfig called before initialization, returning default config');
+    }
     return { ...this.config };
   }
 
@@ -88,6 +100,13 @@ export class ConfigManager {
   ): Promise<void> {
     this.config.ranking = { ...this.config.ranking, ...rankingConfig };
     await this.saveConfig();
+  }
+
+  getPluginConfig(pluginId: string): AppConfig['plugins'][string] | null {
+    if (!this.initialized) {
+      log.warn('[ConfigManager] getPluginConfig called before initialization');
+    }
+    return this.config.plugins[pluginId] || null;
   }
 }
 

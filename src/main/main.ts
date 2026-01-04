@@ -36,6 +36,7 @@ import { windowManager } from './windowManager';
 import { configManager } from './configManager';
 
 log.initialize();
+log.transports.file.level = 'info';
 
 // Register IPC protocol as privileged (must be called before app.ready)
 protocol.registerSchemesAsPrivileged([
@@ -347,6 +348,7 @@ ipcMain.handle(
   (
     _,
     options: {
+      pluginId: string;
       data?: Record<string, unknown>;
       config: {
         component: string;
@@ -370,6 +372,7 @@ ipcMain.handle('get-config', async () => {
 ipcMain.handle('get-plugin-config', async (_, pluginId: string) => {
   try {
     const config = configManager.getConfig();
+    log.info('[IPC] get-plugin-config:', pluginId, config.plugins[pluginId]);
     return config.plugins[pluginId] || null;
   } catch (error) {
     log.error('[IPC] get-plugin-config error:', error);

@@ -32,6 +32,7 @@ export interface WindowAPI {
     openURL: (url: string) => void;
     resizeSearchWindow: (height: number) => void;
     openWindow: (options: {
+      pluginId: string;
       data?: Record<string, unknown>;
       config: {
         component: string;
@@ -84,6 +85,7 @@ const desktopHandler = {
   resizeSearchWindow: (height: number) =>
     ipcRenderer.send('resize-search-window', height),
   openWindow: (options: {
+    pluginId: string;
     data?: Record<string, unknown>;
     config: {
       component: string;
@@ -108,3 +110,4 @@ contextBridge.exposeInMainWorld('electron', electronHandler);
 contextBridge.exposeInMainWorld('desktop', desktopHandler);
 
 export type ElectronHandler = typeof electronHandler;
+export type DesktopHandler = typeof desktopHandler;

@@ -46,6 +46,11 @@ export interface OpenWindowOptions {
   data?: Record<string, any>;
 
   /**
+   * 插件ID - 必填参数，用于标识插件来源
+   */
+  pluginId: string;
+
+  /**
    * 窗口配置
    */
   config: {

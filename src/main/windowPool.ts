@@ -7,6 +7,7 @@ import type {
   WindowDataEvent,
   WindowPoolState,
 } from '../types/window';
+import { configManager } from './configManager';
 
 interface IdleWindow {
   window: BrowserWindow;
@@ -216,7 +217,7 @@ export class WindowPool {
           WindowPool.applyOverrides(window, config.overrides);
         }
 
-        WindowPool.sendInitialDataIfNeeded(window, data);
+        WindowPool.sendInitialDataIfNeeded(window, options);
 
         window.show();
         window.focus();
@@ -258,21 +259,32 @@ export class WindowPool {
     }
   }
 
-  private static sendInitialDataIfNeeded(
+  private static async sendInitialDataIfNeeded(
     window: BrowserWindow,
-    data?: unknown,
+    options: OpenWindowOptions,
   ) {
-    if (!data) {
-      log.info('[WindowPool] No data to send, skipping window-data event');
-      return;
+    try {
+      const config = await configManager.getPluginConfig(options.pluginId);
+
+      const enhancedData = {
+        ...options.data,
+        pluginConfig: config || {},
+      };
+
+      if (!enhancedData) {
+        log.info('[WindowPool] No data to send, skipping window-data event');
+        return;
+      }
+
+      const eventData: WindowDataEvent = {
+        data: enhancedData,
+      };
+
+      log.info('[WindowPool] Sending window-data event', { data: eventData });
+      window.webContents.send('window-data', eventData);
+    } catch (error) {
+      log.error('[WindowPool] Error sending window-data:', error);
     }
-
-    const eventData: WindowDataEvent = {
-      data,
-    };
-
-    log.info('[WindowPool] Sending window-data event', { data: eventData });
-    window.webContents.send('window-data', eventData);
   }
 
   private canRecycle(window: BrowserWindow): boolean {
