@@ -21,13 +21,23 @@ export type Action =
 
 export interface Candidate {
   pluginId: string;
-  title: string;
-  description: string;
+  index: number;
   action: Action;
-  icon?: string;
+  icon: string;
   priority: number;
   detailedDescription: string;
   rankingField: string;
+  content?:
+    | {
+        type: 'standard';
+        title: string;
+        description?: string;
+      }
+    | {
+        type: 'component';
+        component: ComponentType<any>;
+        props?: Record<string, unknown>;
+      };
 }
 
 export interface PluginConfigProps {

@@ -1,8 +1,10 @@
 import { createRoot } from 'react-dom/client';
 import { HashRouter, Routes, Route } from 'react-router-dom';
-import App from './App';
-import PluginApp from './PluginApp';
 import SearchCenter from './SearchCenter';
+import { SettingsWindow } from './SettingsWindow';
+import PluginApp from './PluginApp';
+import { Toaster } from './components/ui/sonner';
+import './App.css';
 
 const container = document.getElementById('root') as HTMLElement;
 const root = createRoot(container);
@@ -11,9 +13,11 @@ root.render(
   <HashRouter>
     <Routes>
       <Route path="/search" element={<SearchCenter />} />
+      <Route path="/settings" element={<SettingsWindow />} />
       <Route path="/plugin" element={<PluginApp />} />
-      <Route path="/*" element={<App />} />
+      <Route path="/" element={<SettingsWindow />} />
     </Routes>
+    <Toaster />
   </HashRouter>,
 );
 

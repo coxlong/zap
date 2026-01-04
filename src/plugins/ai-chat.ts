@@ -1,5 +1,6 @@
 import { Plugin, Candidate } from './types';
 import { AIChatConfig } from './components/AIChatConfig';
+import { AIChatCandidate } from './components/AIChatCandidate';
 
 export const aiPlugin: Plugin = {
   id: 'ai-chat',
@@ -25,33 +26,37 @@ export const aiPlugin: Plugin = {
 
     const modelsToUse = isAskCommand ? availableModels : [availableModels[0]];
 
-    modelsToUse.forEach((model) => {
-      const preview =
-        initialMessage.length > 30
-          ? `${initialMessage.substring(0, 30)}...`
-          : initialMessage;
+    modelsToUse.forEach((model, index) => {
+      const isDefault = index === 0;
 
       results.push({
         pluginId: 'ai-chat',
-        title: `AI 对话：${preview}`,
-        description: '点击或 Enter 打开 AI 聊天窗口',
+        index: results.length,
         icon: '🤖',
         priority: 70,
-        detailedDescription: `AI对话功能，用于回答用户关于"${initialMessage}"的问题`,
-        rankingField: `AI对话 ${preview}`,
+        detailedDescription: `AI对话功能，使用模型 ${model}`,
+        rankingField: `AI对话 ${model}`,
         action: {
           type: 'open-window',
           payload: {
             data: {
-              initialMessage: isAskCommand ? initialMessage : '',
+              initialMessage,
               model,
             },
             config: {
               component: 'ChatWindow',
-              title: `AI 对话：${preview}`,
+              title: `AI 对话：${model}`,
               width: 800,
               height: 600,
             },
+          },
+        },
+        content: {
+          type: 'component',
+          component: AIChatCandidate,
+          props: {
+            model,
+            isDefault,
           },
         },
       });

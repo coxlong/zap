@@ -1,6 +1,6 @@
 import { BrowserWindow, app } from 'electron';
 import * as path from 'path';
-import log from 'electron-log';
+import log from 'electron-log/main';
 import type {
   OpenWindowOptions,
   WindowPoolConfig,
@@ -263,6 +263,7 @@ export class WindowPool {
     data?: unknown,
   ) {
     if (!data) {
+      log.info('[WindowPool] No data to send, skipping window-data event');
       return;
     }
 
@@ -270,6 +271,7 @@ export class WindowPool {
       data,
     };
 
+    log.info('[WindowPool] Sending window-data event', { data: eventData });
     window.webContents.send('window-data', eventData);
   }
 

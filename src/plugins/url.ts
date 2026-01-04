@@ -12,8 +12,7 @@ export const urlPlugin: Plugin = {
     if (/^https?:\/\/.+/i.test(trimmed)) {
       results.push({
         pluginId: 'url',
-        title: `打开链接：${trimmed}`,
-        description: '在浏览器中打开链接',
+        index: results.length,
         icon: '🔗',
         priority: 80,
         detailedDescription: `打开网页链接：${trimmed}`,
@@ -21,6 +20,11 @@ export const urlPlugin: Plugin = {
         action: {
           type: 'open-url',
           payload: trimmed,
+        },
+        content: {
+          type: 'standard',
+          title: `打开链接：${trimmed}`,
+          description: '在浏览器中打开链接',
         },
       });
     }
@@ -30,8 +34,7 @@ export const urlPlugin: Plugin = {
       const url = `https://${trimmed}`;
       results.push({
         pluginId: 'url',
-        title: `访问网站：${trimmed}`,
-        description: '在浏览器中打开',
+        index: results.length,
         icon: '🔗',
         priority: 80,
         detailedDescription: `访问网站域名：${trimmed}`,
@@ -40,6 +43,11 @@ export const urlPlugin: Plugin = {
           type: 'open-url',
           payload: url,
         },
+        content: {
+          type: 'standard',
+          title: `访问网站：${trimmed}`,
+          description: '在浏览器中打开',
+        },
       });
     }
 
@@ -47,8 +55,7 @@ export const urlPlugin: Plugin = {
       const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`;
       results.push({
         pluginId: 'url',
-        title: `搜索：${trimmed}`,
-        description: '在 Google 中搜索',
+        index: results.length,
         icon: '🔗',
         priority: 60,
         detailedDescription: `在Google搜索：${trimmed}`,
@@ -56,6 +63,11 @@ export const urlPlugin: Plugin = {
         action: {
           type: 'open-url',
           payload: searchUrl,
+        },
+        content: {
+          type: 'standard',
+          title: `搜索：${trimmed}`,
+          description: '在 Google 中搜索',
         },
       });
     }

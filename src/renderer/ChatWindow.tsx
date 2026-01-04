@@ -10,13 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/renderer/components/ui/select';
-import { useWindowPreload } from '@/renderer/hooks/useWindowPreload';
+
 import type { AIChatPluginConfig } from '@/types/config';
 // @ts-expect-error
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { prism } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { toast } from 'sonner';
+import log from 'electron-log/renderer';
 
 // ReactMarkdown 组件配置
 const markdownComponents = {
@@ -127,9 +128,11 @@ interface ChatData {
   model?: string;
 }
 
-export function ChatWindow() {
-  const { data, isReady } = useWindowPreload<ChatData>();
-  const initialMessage = data?.initialMessage;
+interface ChatWindowProps extends ChatData {}
+
+export function ChatWindow(props: ChatWindowProps = {}) {
+  const { initialMessage } = props;
+  const propModel = props.model;
   const [input, setInput] = useState('');
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [availableModels, setAvailableModels] = useState<string[]>([]);
@@ -142,28 +145,33 @@ export function ChatWindow() {
           const aiChatConfig = config as AIChatPluginConfig;
           setAvailableModels(aiChatConfig.availableModels || []);
 
-          if (
-            data?.model &&
-            aiChatConfig.availableModels.includes(data.model)
-          ) {
-            setSelectedModel(data.model);
+          if (propModel && aiChatConfig.availableModels.includes(propModel)) {
+            setSelectedModel(propModel);
           } else {
             setSelectedModel(aiChatConfig.availableModels[0] || '');
           }
         }
-      } catch {
+      } catch (error) {
+        log.error('[ChatWindow] load plugin config failed. ', error);
         toast.error('加载插件配置失败');
       }
     };
 
     loadPluginConfig();
-  }, [data?.model]);
+  }, [propModel]);
 
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, error, clearError } = useChat({
     transport: new DefaultChatTransport({
       api: 'ipc://localhost/api/chat',
     }),
   });
+
+  useEffect(() => {
+    if (error) {
+      toast.error(`对话出错: ${error.message}`);
+      setTimeout(() => clearError(), 3000);
+    }
+  }, [error, clearError]);
 
   const sendMessageWithModel = useCallback(
     (text: string) => {
@@ -190,7 +198,6 @@ export function ChatWindow() {
 
   useEffect(() => {
     if (
-      isReady &&
       initialMessage &&
       initialMessage.trim() !== '' &&
       !hasSentInitialMessageRef.current &&
@@ -199,9 +206,10 @@ export function ChatWindow() {
       hasSentInitialMessageRef.current = true;
       sendMessageWithModel(initialMessage);
     }
-  }, [isReady, initialMessage, sendMessageWithModel, selectedModel]);
+  }, [initialMessage, sendMessageWithModel, selectedModel]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -211,13 +219,11 @@ export function ChatWindow() {
     scrollToBottom();
   }, [messages]);
 
-  if (!isReady) {
-    return (
-      <div className="w-full h-screen flex items-center justify-center bg-white">
-        <div className="text-gray-500">加载中...</div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (inputRef.current && status === 'ready') {
+      inputRef.current.focus();
+    }
+  }, [status]);
 
   return (
     <div className="w-full h-screen bg-white flex flex-col">
@@ -291,11 +297,11 @@ export function ChatWindow() {
       >
         <div className="flex gap-2">
           <Input
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="输入消息..."
             className="flex-1"
-            autoFocus
             disabled={status !== 'ready'}
           />
           <Button type="submit" disabled={status !== 'ready'}>

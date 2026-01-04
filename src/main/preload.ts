@@ -6,7 +6,6 @@ import type { AppConfig, PluginConfig } from '@/types/config';
 export type Channels =
   | 'ipc-example'
   | 'close-search-window'
-  | 'search-window-focus'
   | 'window-data'
   | 'window-reset'
   | 'get-config'

@@ -286,7 +286,7 @@ export function SettingsPanel({
                                 e.target.value,
                               )
                             }
-                            placeholder="例如：http://localhost:11434"
+                            placeholder="例如：http://localhost:11434/v1"
                             className="bg-background/50 font-mono text-sm"
                           />
                         </div>

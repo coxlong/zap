@@ -29,11 +29,13 @@ import {
 } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { autoUpdater } from 'electron-updater';
-import log from 'electron-log';
+import log from 'electron-log/main';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { windowManager } from './windowManager';
 import { configManager } from './configManager';
+
+log.initialize();
 
 // Register IPC protocol as privileged (must be called before app.ready)
 protocol.registerSchemesAsPrivileged([
@@ -71,7 +73,7 @@ ipcMain.on('ipc-example', async (event, arg) => {
 function createSearchWindow() {
   const window = new BrowserWindow({
     width: 680,
-    height: 120,
+    height: 64,
     show: false,
     frame: false,
     resizable: false,
@@ -84,11 +86,6 @@ function createSearchWindow() {
         ? path.join(__dirname, 'preload.js')
         : path.join(__dirname, '../../.erb/dll/preload.js'),
     },
-  });
-
-  window.once('show', () => {
-    // Auto-focus the search input when window shows
-    window.webContents.send('search-window-focus');
   });
 
   window.loadURL(`${resolveHtmlPath('index.html')}#/search`);
@@ -371,8 +368,13 @@ ipcMain.handle('get-config', async () => {
 });
 
 ipcMain.handle('get-plugin-config', async (_, pluginId: string) => {
-  const config = configManager.getConfig();
-  return config.plugins[pluginId] || null;
+  try {
+    const config = configManager.getConfig();
+    return config.plugins[pluginId] || null;
+  } catch (error) {
+    log.error('[IPC] get-plugin-config error:', error);
+    return null;
+  }
 });
 
 ipcMain.handle('update-config', async (_, config: unknown) => {
@@ -566,7 +568,7 @@ app
 
     // Initialize window manager
     windowManager.initialize({
-      minIdle: 2,
+      minIdle: 1,
       maxTotal: 10,
       ttl: 5 * 60 * 1000,
       defaultSize: {

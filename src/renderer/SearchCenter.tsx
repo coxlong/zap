@@ -1,4 +1,4 @@
-import { useEffect, useRef, useLayoutEffect } from 'react';
+import { useEffect, useRef, useLayoutEffect, useCallback } from 'react';
 import {
   Command,
   CommandList,
@@ -22,7 +22,6 @@ function SearchContent() {
     useSearch();
   const { searchTerm, results, error } = state;
   const containerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   // Monitor content height changes to dynamically resize window
   useLayoutEffect(() => {
@@ -44,51 +43,42 @@ function SearchContent() {
     };
   }, [results]);
 
-  const handleSelectCandidate = (candidate: Candidate) => {
-    switch (candidate.action.type) {
-      case 'copy':
-        if (candidate.action.payload) {
-          window.desktop?.copyToClipboard(candidate.action.payload);
-          window.electron?.ipcRenderer.sendMessage('close-search-window');
-        }
-        break;
+  const handleSelectCandidate = useCallback(
+    (candidate: Candidate) => {
+      setSearchTerm('');
 
-      case 'open-url':
-        if (candidate.action.payload) {
-          window.desktop?.openURL(candidate.action.payload);
-          window.electron?.ipcRenderer.sendMessage('close-search-window');
-        }
-        break;
+      switch (candidate.action.type) {
+        case 'copy':
+          if (candidate.action.payload) {
+            window.desktop?.copyToClipboard(candidate.action.payload);
+            window.electron?.ipcRenderer.sendMessage('close-search-window');
+          }
+          break;
 
-      case 'open-window':
-        if (window.desktop?.openWindow && candidate.action.payload) {
-          const { payload } = candidate.action;
-          window.desktop.openWindow({
-            data: payload.data,
-            config: payload.config,
-          });
-          window.electron?.ipcRenderer.sendMessage('close-search-window');
-        }
-        break;
+        case 'open-url':
+          if (candidate.action.payload) {
+            window.desktop?.openURL(candidate.action.payload);
+            window.electron?.ipcRenderer.sendMessage('close-search-window');
+          }
+          break;
 
-      default:
-        break;
-    }
-  };
+        case 'open-window':
+          if (window.desktop?.openWindow && candidate.action.payload) {
+            const { payload } = candidate.action;
+            window.desktop.openWindow({
+              data: payload.data,
+              config: payload.config,
+            });
+            window.electron?.ipcRenderer.sendMessage('close-search-window');
+          }
+          break;
 
-  // Listen for focus event from main process
-  useEffect(() => {
-    const handleFocus = () => {
-      inputRef.current?.focus();
-    };
-
-    const cleanup = window.electron?.ipcRenderer.on(
-      'search-window-focus',
-      handleFocus,
-    );
-
-    return cleanup;
-  }, []);
+        default:
+          break;
+      }
+    },
+    [setSearchTerm],
+  );
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -112,7 +102,7 @@ function SearchContent() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [results]);
+  }, [results, handleSelectCandidate]);
 
   const hasResults = results.length > 0;
 
@@ -126,7 +116,7 @@ function SearchContent() {
         shouldFilter={false}
       >
         <CommandInput
-          ref={inputRef}
+          autoFocus
           value={searchTerm}
           onValueChange={setSearchTerm}
           onCompositionStart={startComposition}
@@ -153,28 +143,34 @@ function SearchContent() {
 
             {results.map((candidate, index) => (
               <CommandItem
-                key={`${candidate.pluginId}-${candidate.title}-${candidate.action.payload || index}`}
-                value={`${candidate.title}-${index}`}
+                key={`${candidate.pluginId}-${candidate.index}`}
+                value={`${candidate.pluginId}-${index}`}
                 onSelect={() => handleSelectCandidate(candidate)}
                 className="group h-[60px] rounded-lg aria-selected:bg-gray-100/80"
               >
                 <div className="flex items-center justify-center w-10 h-10 rounded-md bg-gray-50 text-2xl border border-gray-100 shrink-0">
-                  {candidate.icon || '📦'}
+                  {candidate.icon}
                 </div>
 
                 <div className="flex-1 min-w-0 flex flex-col justify-center ml-3">
-                  <div className="font-medium text-base text-gray-900 leading-tight truncate">
-                    {candidate.title}
-                  </div>
-                  {(candidate.description || candidate.action.type) && (
-                    <div className="text-xs text-gray-400 mt-0.5 truncate">
-                      <span className="truncate">
-                        {candidate.description || candidate.pluginId}
-                      </span>
-                      {candidate.action.type === 'open-url' && (
-                        <span className="ml-1.5 opacity-70">· URL</span>
-                      )}
-                    </div>
+                  {candidate.content?.type === 'component' ? (
+                    <candidate.content.component {...candidate.content.props} />
+                  ) : (
+                    <>
+                      <div className="font-medium text-base text-gray-900 leading-tight truncate">
+                        {candidate.content?.type === 'standard'
+                          ? candidate.content.title
+                          : '未知选项'}
+                      </div>
+                      {candidate.content?.type === 'standard' &&
+                        candidate.content.description && (
+                          <div className="text-xs text-gray-400 mt-0.5 truncate">
+                            <span className="truncate">
+                              {candidate.content.description}
+                            </span>
+                          </div>
+                        )}
+                    </>
                   )}
                 </div>
 

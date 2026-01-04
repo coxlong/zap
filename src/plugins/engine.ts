@@ -15,12 +15,10 @@ export async function getLocalResults(input: string): Promise<Candidate[]> {
       } catch {
         return [];
       }
-    })
+    }),
   );
 
-  return results
-    .flat()
-    .sort((a, b) => b.priority - a.priority);
+  return results.flat().sort((a, b) => b.priority - a.priority);
 }
 
 export async function rerank(

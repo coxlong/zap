@@ -38,7 +38,7 @@ export const DEFAULT_CONFIG: AppConfig = {
     {
       id: 'ollama',
       name: 'Ollama',
-      baseURL: 'http://localhost:11434',
+      baseURL: 'http://localhost:11434/v1',
       apiKey: '',
       models: ['qwen2.5:1.5b'],
     },

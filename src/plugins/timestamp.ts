@@ -23,8 +23,7 @@ export const timestampPlugin: Plugin = {
 
       results.push({
         pluginId: 'timestamp',
-        title: `时间戳：${formatted}`,
-        description: '按下 Enter 复制到剪贴板',
+        index: results.length,
         icon: '🕐',
         priority: 100,
         detailedDescription: `将10位时间戳"${trimmed}"转换为本地时间：${formatted}`,
@@ -32,6 +31,11 @@ export const timestampPlugin: Plugin = {
         action: {
           type: 'copy',
           payload: formatted,
+        },
+        content: {
+          type: 'standard',
+          title: `时间戳：${formatted}`,
+          description: '按下 Enter 复制到剪贴板',
         },
       });
     }
@@ -50,8 +54,7 @@ export const timestampPlugin: Plugin = {
 
       results.push({
         pluginId: 'timestamp',
-        title: `时间戳：${formatted}`,
-        description: '按下 Enter 复制到剪贴板',
+        index: results.length,
         icon: '🕐',
         priority: 100,
         detailedDescription: `将13位时间戳"${trimmed}"转换为本地时间：${formatted}`,
@@ -59,6 +62,11 @@ export const timestampPlugin: Plugin = {
         action: {
           type: 'copy',
           payload: formatted,
+        },
+        content: {
+          type: 'standard',
+          title: `时间戳：${formatted}`,
+          description: '按下 Enter 复制到剪贴板',
         },
       });
     }
